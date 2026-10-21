@@ -1,12 +1,12 @@
 {
-"id": "b1",
-"title": "1. Basic Data Selection",
-"difficulty": "Beginner",
-"difficultyColor": "text-emerald-400",
-"description": "Warm up by retrieving all columns from the Products catalog to review available inventory.",
-"objective": "Select every column and row from the Products table.",
-"dataId": "d1",
-"targetQuery": "SELECT * FROM Products;",
-"hint": "Use SELECT * FROM Products to retrieve all records.",
-"points": 100
+  "id": "b1",
+  "title": "1. Basic Data Selection",
+  "difficulty": "Beginner",
+  "difficultyColor": "text-emerald-400",
+  "description": "Warm up by retrieving all columns from the <code>Products</code> catalog to review available inventory.",
+  "objective": "Select every column and row from the <code>Products</code> table.",
+  "dataId": "d1",
+  "targetQuery": "SELECT * FROM Products;",
+  "hint": "Use SELECT * FROM Products to retrieve all records.",
+  "points": 100
 }

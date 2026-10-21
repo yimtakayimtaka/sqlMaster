@@ -1,0 +1,12 @@
+{
+  "id": "b2",
+  "title": "2. Filtering with WHERE",
+  "difficulty": "Beginner",
+  "difficultyColor": "text-emerald-400",
+  "description": "Our store manager wants to inspect premium products. Find items that cost more than $50.",
+  "objective": "Select <code>name</code> and <code>price</code> from <code>Products</code> where <code>price</code> is strictly greater than 50.",
+  "dataId": "d1",
+  "targetQuery": "SELECT name, price FROM Products WHERE price > 50;",
+  "hint": "Combine SELECT name, price FROM Products with WHERE price > 50",
+  "points": 120
+}

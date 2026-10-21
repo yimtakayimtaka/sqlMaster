@@ -1,0 +1,12 @@
+{
+  "id": "i4",
+  "title": "10. Faculty Course Roster",
+  "difficulty": "Intermediate",
+  "difficultyColor": "text-amber-400",
+  "description": "Match university courses with their assigned teaching professor.",
+  "objective": "Select <code>Courses.title</code>, <code>Courses.code</code>, and <code>Professors.name</code> by joining <code>Courses</code> with <code>Professors</code> on <code>professor_id</code>.",
+  "dataId": "d2",
+  "targetQuery": "SELECT Courses.title, Courses.code, Professors.name FROM Courses JOIN Professors ON Courses.professor_id = Professors.id;",
+  "hint": "Join Courses with Professors ON Courses.professor_id = Professors.id",
+  "points": 180
+}

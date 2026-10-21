@@ -1,0 +1,12 @@
+{
+  "id": "e4",
+  "title": "12. Above Average Major GPA",
+  "difficulty": "Expert",
+  "difficultyColor": "text-purple-400",
+  "description": "Find students whose GPA exceeds the overall university GPA average.",
+  "objective": "Select <code>name</code> and <code>gpa</code> from <code>Students</code> for students with a GPA higher than the overall student average.",
+  "dataId": "d2",
+  "targetQuery": "SELECT name, gpa FROM Students WHERE gpa > (SELECT AVG(gpa) FROM Students);",
+  "hint": "Use a subquery: WHERE gpa > (SELECT AVG(gpa) FROM Students)",
+  "points": 260
+}

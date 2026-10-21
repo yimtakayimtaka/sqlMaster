@@ -1,0 +1,12 @@
+{
+  "id": "b4",
+  "title": "8. Department Major Search",
+  "difficulty": "Beginner",
+  "difficultyColor": "text-emerald-400",
+  "description": "List all students enrolled specifically in Computer Science.",
+  "objective": "Select all columns from <code>Students</code> where <code>major</code> equals 'Computer Science'.",
+  "dataId": "d2",
+  "targetQuery": "SELECT * FROM Students WHERE major = 'Computer Science';",
+  "hint": "Filter using WHERE major = 'Computer Science'",
+  "points": 110
+}

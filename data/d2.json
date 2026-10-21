@@ -1,0 +1,43 @@
+{
+  "id": "d2",
+  "schemaSql": "CREATE TABLE Students (id INTEGER PRIMARY KEY, name TEXT, major TEXT, gpa REAL, graduation_year INTEGER); INSERT INTO Students VALUES (101, 'Alex Mercer', 'Computer Science', 3.85, 2026), (102, 'Brianna Torres', 'Data Analytics', 3.40, 2025), (103, 'Charlie Chen', 'Computer Science', 3.92, 2026), (104, 'Diana Prince', 'Mathematics', 3.15, 2027), (105, 'Ethan Hunt', 'Data Analytics', 2.90, 2025); CREATE TABLE Professors (id INTEGER PRIMARY KEY, name TEXT, department TEXT, office TEXT); INSERT INTO Professors VALUES (1, 'Dr. Alan Turing', 'Computer Science', 'Tech 301'), (2, 'Dr. Ada Lovelace', 'Mathematics', 'Math 102'), (3, 'Dr. Grace Hopper', 'Data Analytics', 'Tech 210'); CREATE TABLE Courses (id INTEGER PRIMARY KEY, title TEXT, code TEXT, credits INTEGER, professor_id INTEGER); INSERT INTO Courses VALUES (201, 'Database Systems', 'CS301', 4, 1), (202, 'Algorithms', 'CS302', 4, 1), (203, 'Linear Algebra', 'MATH201', 3, 2), (204, 'Machine Learning', 'DA401', 4, 3); CREATE TABLE Enrollments (student_id INTEGER, course_id INTEGER, grade TEXT); INSERT INTO Enrollments VALUES (101, 201, 'A'), (101, 202, 'A-'), (102, 201, 'B+'), (102, 204, 'A'), (103, 202, 'A'), (104, 203, 'B'), (105, 204, 'C+');",
+  "metadata": [
+    {
+      "name": "Students",
+      "columns": [
+        { "name": "id", "type": "INTEGER", "pk": true },
+        { "name": "name", "type": "TEXT", "pk": false },
+        { "name": "major", "type": "TEXT", "pk": false },
+        { "name": "gpa", "type": "REAL", "pk": false },
+        { "name": "graduation_year", "type": "INTEGER", "pk": false }
+      ]
+    },
+    {
+      "name": "Professors",
+      "columns": [
+        { "name": "id", "type": "INTEGER", "pk": true },
+        { "name": "name", "type": "TEXT", "pk": false },
+        { "name": "department", "type": "TEXT", "pk": false },
+        { "name": "office", "type": "TEXT", "pk": false }
+      ]
+    },
+    {
+      "name": "Courses",
+      "columns": [
+        { "name": "id", "type": "INTEGER", "pk": true },
+        { "name": "title", "type": "TEXT", "pk": false },
+        { "name": "code", "type": "TEXT", "pk": false },
+        { "name": "credits", "type": "INTEGER", "pk": false },
+        { "name": "professor_id", "type": "INTEGER", "pk": false }
+      ]
+    },
+    {
+      "name": "Enrollments",
+      "columns": [
+        { "name": "student_id", "type": "INTEGER", "pk": false },
+        { "name": "course_id", "type": "INTEGER", "pk": false },
+        { "name": "grade", "type": "TEXT", "pk": false }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "id": "e1",
+  "title": "5. Relational JOINs",
+  "difficulty": "Advanced",
+  "difficultyColor": "text-rose-400",
+  "description": "Connect order history with customer profiles. Show order details alongside customer names.",
+  "objective": "Select <code>Orders.id</code>, <code>Customers.name</code>, and <code>Orders.total</code> by joining <code>Orders</code> with <code>Customers</code> on <code>customer_id</code>.",
+  "dataId": "d1",
+  "targetQuery": "SELECT Orders.id, Customers.name, Orders.total FROM Orders JOIN Customers ON Orders.customer_id = Customers.id;",
+  "hint": "Use SELECT Orders.id, Customers.name, Orders.total FROM Orders JOIN Customers ON Orders.customer_id = Customers.id",
+  "points": 220
+}

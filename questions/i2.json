@@ -1,0 +1,12 @@
+{
+  "id": "i2",
+  "title": "4. Aggregation & Grouping",
+  "difficulty": "Intermediate",
+  "difficultyColor": "text-amber-400",
+  "description": "Analyze payroll by department. Calculate the average salary per department.",
+  "objective": "Select <code>department</code> and the average salary (aliased as <code>avg_salary</code>) from <code>Employees</code> grouped by <code>department</code>.",
+  "dataId": "d1",
+  "targetQuery": "SELECT department, AVG(salary) AS avg_salary FROM Employees GROUP BY department;",
+  "hint": "Use SELECT department, AVG(salary) AS avg_salary FROM Employees GROUP BY department",
+  "points": 180
+}

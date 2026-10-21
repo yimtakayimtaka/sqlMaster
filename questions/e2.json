@@ -1,0 +1,12 @@
+{
+  "id": "e2",
+  "title": "6. Subqueries & CTEs",
+  "difficulty": "Expert",
+  "difficultyColor": "text-purple-400",
+  "description": "Find high-tier products dynamically without hardcoding price thresholds.",
+  "objective": "Select <code>name</code> and <code>price</code> from <code>Products</code> for items priced above the average product price.",
+  "dataId": "d1",
+  "targetQuery": "SELECT name, price FROM Products WHERE price > (SELECT AVG(price) FROM Products);",
+  "hint": "Use a subquery: WHERE price > (SELECT AVG(price) FROM Products)",
+  "points": 250
+}

@@ -1,0 +1,12 @@
+{
+  "id": "i3",
+  "title": "9. Major Average GPA",
+  "difficulty": "Intermediate",
+  "difficultyColor": "text-amber-400",
+  "description": "Calculate the academic performance across university majors.",
+  "objective": "Select <code>major</code> and average GPA (aliased as <code>avg_gpa</code>) grouped by <code>major</code>.",
+  "dataId": "d2",
+  "targetQuery": "SELECT major, AVG(gpa) AS avg_gpa FROM Students GROUP BY major;",
+  "hint": "Use GROUP BY major with AVG(gpa) AS avg_gpa",
+  "points": 160
+}

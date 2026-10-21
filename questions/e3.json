@@ -1,0 +1,12 @@
+{
+  "id": "e3",
+  "title": "11. Student Class Enrolment",
+  "difficulty": "Advanced",
+  "difficultyColor": "text-rose-400",
+  "description": "Map student names to course titles they are actively attending.",
+  "objective": "Select <code>Students.name</code>, <code>Courses.title</code>, and <code>Enrollments.grade</code> by joining <code>Students</code>, <code>Enrollments</code>, and <code>Courses</code>.",
+  "dataId": "d2",
+  "targetQuery": "SELECT Students.name, Courses.title, Enrollments.grade FROM Enrollments JOIN Students ON Enrollments.student_id = Students.id JOIN Courses ON Enrollments.course_id = Courses.id;",
+  "hint": "Use two JOINs connecting Enrollments with Students and Courses",
+  "points": 230
+}

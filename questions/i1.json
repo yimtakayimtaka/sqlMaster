@@ -1,0 +1,12 @@
+{
+  "id": "i1",
+  "title": "3. Sorting & Limits",
+  "difficulty": "Intermediate",
+  "difficultyColor": "text-amber-400",
+  "description": "Identify our highest earners. Retrieve the top 3 highest-paid employees in the company.",
+  "objective": "Select all columns from <code>Employees</code>, sorted by <code>salary</code> descending, limited to 3 rows.",
+  "dataId": "d1",
+  "targetQuery": "SELECT * FROM Employees ORDER BY salary DESC LIMIT 3;",
+  "hint": "Use ORDER BY salary DESC followed by LIMIT 3.",
+  "points": 150
+}
