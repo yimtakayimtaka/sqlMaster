@@ -1,26 +1,44 @@
 {
-"id": "d1",
-"schemaSql": "CREATE TABLE Products (id INTEGER PRIMARY KEY, name TEXT, category TEXT, price REAL, stock INTEGER); INSERT INTO Products VALUES (1, 'Pro Mechanical Keyboard', 'Electronics', 129.99, 45), (2, 'Ergonomic Wireless Mouse', 'Electronics', 49.99, 120), (3, '4K Ultra HD Monitor', 'Electronics', 349.50, 18), (4, 'Noise Cancelling Headphones', 'Audio', 199.00, 30), (5, 'USB-C Desk Hub', 'Accessories', 29.99, 85); CREATE TABLE Employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary REAL, hire_date TEXT); INSERT INTO Employees VALUES (1, 'Alice Vance', 'Engineering', 95000, '2021-03-15'), (2, 'Bob Martinez', 'Engineering', 88000, '2022-01-10');",
-"metadata": [
-{
-"name": "Products",
-"columns": [
-{ "name": "id", "type": "INTEGER", "pk": true },
-{ "name": "name", "type": "TEXT", "pk": false },
-{ "name": "category", "type": "TEXT", "pk": false },
-{ "name": "price", "type": "REAL", "pk": false },
-{ "name": "stock", "type": "INTEGER", "pk": false }
-]
-},
-{
-"name": "Employees",
-"columns": [
-{ "name": "id", "type": "INTEGER", "pk": true },
-{ "name": "name", "type": "TEXT", "pk": false },
-{ "name": "department", "type": "TEXT", "pk": false },
-{ "name": "salary", "type": "REAL", "pk": false },
-{ "name": "hire_date", "type": "TEXT", "pk": false }
-]
-}
-]
+  "id": "d1",
+  "schemaSql": "CREATE TABLE Products (id INTEGER PRIMARY KEY, name TEXT, category TEXT, price REAL, stock INTEGER); INSERT INTO Products VALUES (1, 'Pro Mechanical Keyboard', 'Electronics', 129.99, 45), (2, 'Ergonomic Wireless Mouse', 'Electronics', 49.99, 120), (3, '4K Ultra HD Monitor', 'Electronics', 349.50, 18), (4, 'Noise Cancelling Headphones', 'Audio', 199.00, 30), (5, 'USB-C Desk Hub', 'Accessories', 29.99, 85), (6, 'Leather Desk Mat', 'Accessories', 35.00, 60); CREATE TABLE Employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary REAL, hire_date TEXT); INSERT INTO Employees VALUES (1, 'Alice Vance', 'Engineering', 95000, '2021-03-15'), (2, 'Bob Martinez', 'Engineering', 88000, '2022-01-10'), (3, 'Carla Gomez', 'Marketing', 67000, '2019-06-01'), (4, 'David Kim', 'Sales', 72000, '2020-11-20'), (5, 'Elena Rostova', 'Engineering', 105000, '2018-02-14'), (6, 'Frank Wright', 'Marketing', 62000, '2023-04-05'); CREATE TABLE Customers (id INTEGER PRIMARY KEY, name TEXT, email TEXT, city TEXT); INSERT INTO Customers VALUES (101, 'Acme Corp', 'contact@acme.com', 'New York'), (102, 'Cyberdyne', 'tech@cyberdyne.com', 'San Francisco'), (103, 'Stark Tech', 'tony@stark.com', 'Malibu'), (104, 'Wayne Ent', 'bruce@wayne.com', 'Gotham'); CREATE TABLE Orders (id INTEGER PRIMARY KEY, customer_id INTEGER, order_date TEXT, total REAL); INSERT INTO Orders VALUES (5001, 101, '2026-02-10', 479.49), (5002, 102, '2026-02-11', 129.99), (5003, 101, '2026-02-14', 35.00), (5004, 103, '2026-02-15', 548.50), (5005, 104, '2026-02-18', 199.00);",
+  "metadata": [
+    {
+      "name": "Products",
+      "columns": [
+        { "name": "id", "type": "INTEGER", "pk": true },
+        { "name": "name", "type": "TEXT", "pk": false },
+        { "name": "category", "type": "TEXT", "pk": false },
+        { "name": "price", "type": "REAL", "pk": false },
+        { "name": "stock", "type": "INTEGER", "pk": false }
+      ]
+    },
+    {
+      "name": "Employees",
+      "columns": [
+        { "name": "id", "type": "INTEGER", "pk": true },
+        { "name": "name", "type": "TEXT", "pk": false },
+        { "name": "department", "type": "TEXT", "pk": false },
+        { "name": "salary", "type": "REAL", "pk": false },
+        { "name": "hire_date", "type": "TEXT", "pk": false }
+      ]
+    },
+    {
+      "name": "Customers",
+      "columns": [
+        { "name": "id", "type": "INTEGER", "pk": true },
+        { "name": "name", "type": "TEXT", "pk": false },
+        { "name": "email", "type": "TEXT", "pk": false },
+        { "name": "city", "type": "TEXT", "pk": false }
+      ]
+    },
+    {
+      "name": "Orders",
+      "columns": [
+        { "name": "id", "type": "INTEGER", "pk": true },
+        { "name": "customer_id", "type": "INTEGER", "pk": false },
+        { "name": "order_date", "type": "TEXT", "pk": false },
+        { "name": "total", "type": "REAL", "pk": false }
+      ]
+    }
+  ]
 }
