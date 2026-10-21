@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Master Lab - Interactive Learning</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti for Gamification Celebrations -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- sql.js (WebAssembly SQLite) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar styling for technical dashboard look */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="h-full font-sans antialiased bg-slate-950 text-slate-100 flex flex-col overflow-hidden">
+
+    <!-- Top Navigation / Header -->
+    <header class="h-14 border-b border-slate-800 bg-slate-900/80 backdrop-blur px-4 flex items-center justify-between z-20 shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-cyan-500 to-blue-600 p-2 rounded-lg text-white font-black text-lg flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                <i class="fa-solid font-mono fa-database"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-slate-100 leading-tight text-base tracking-wide flex items-center gap-2">
+                    SQL Master Lab
+                    <span id="engine-badge" class="text-[10px] bg-slate-800 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full font-mono flex items-center gap-1">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Initializing Engine...
+                    </span>
+                </h1>
+                <p class="text-xs text-slate-400 hidden sm:block">Interactive In-Browser Database Academy</p>
+            </div>
+        </div>
+
+        <!-- Progress & Scoreboard -->
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center bg-slate-800/80 border border-slate-700/60 rounded-lg px-3 py-1 space-x-3">
+                <div class="flex items-center space-x-1.5 text-amber-400" title="Total Points">
+                    <i class="fa-solid fa-trophy text-sm"></i>
+                    <span id="score-display" class="font-mono font-bold text-sm">0</span>
+                    <span class="text-xs text-slate-400">pts</span>
+                </div>
+                <div class="h-4 w-px bg-slate-700"></div>
+                <div class="flex items-center space-x-1.5 text-emerald-400" title="Current Streak">
+                    <i class="fa-solid fa-fire text-sm"></i>
+                    <span id="streak-display" class="font-mono font-bold text-sm">0</span>
+                </div>
+            </div>
+
+            <!-- Level Selector Dropdown -->
+            <div class="relative">
+                <select id="level-select" onchange="loadLevel(parseInt(this.value))" class="bg-slate-800 border border-slate-700 text-xs font-medium text-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-cyan-500 cursor-pointer">
+                    <!-- Options populated dynamically based on QUESTION_LIST -->
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Dashboard -->
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+
+        <!-- Left Sidebar: Schema Browser & Challenge Guide -->
+        <aside class="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-800 bg-slate-900/50 flex flex-col shrink-0 h-1/2 md:h-full overflow-hidden">
+            
+            <!-- Fixed Top Section: Challenge Instructions (Non-scrolling) -->
+            <div class="p-4 border-b border-slate-800 bg-slate-900/80 shrink-0 space-y-4">
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <span id="level-num-badge" class="text-[11px] font-mono font-semibold uppercase tracking-wider text-cyan-400 bg-cyan-950/60 border border-cyan-800/50 px-2 py-0.5 rounded">
+                            Level 1
+                        </span>
+                        <span id="difficulty-badge" class="text-[11px] text-emerald-400 font-medium">Easy</span>
+                    </div>
+                    <h2 id="task-title" class="text-lg font-bold text-slate-100 mt-1">Loading...</h2>
+                    <p id="task-desc" class="text-xs text-slate-300 mt-2 leading-relaxed">
+                        Please wait...
+                    </p>
+                </div>
+
+                <!-- Goal / Task Box -->
+                <div class="bg-slate-850 border border-slate-800 rounded-lg p-3 bg-slate-800/40 space-y-2">
+                    <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-bullseye text-cyan-400"></i> Objective
+                    </h3>
+                    <p id="task-objective" class="text-xs text-slate-200 font-medium">
+                        Loading objective...
+                    </p>
+                </div>
+
+                <!-- Hint Accordion -->
+                <div class="border border-slate-800 rounded-lg bg-slate-900/60 overflow-hidden">
+                    <button onclick="toggleHint()" class="w-full px-3 py-2 text-left text-xs text-slate-400 hover:text-slate-200 font-medium flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><i class="fa-regular fa-lightbulb text-amber-400"></i> Need a Hint? (-15 pts)</span>
+                        <i id="hint-chevron" class="fa-solid fa-chevron-down text-slate-500 text-[10px] transition-transform"></i>
+                    </button>
+                    <div id="hint-body" class="hidden p-3 border-t border-slate-800 text-xs text-amber-300/90 bg-amber-950/10 font-mono leading-relaxed">
+                        <!-- Dynamic hint -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scrollable Bottom Section: Database Schema Explorer -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-3">
+                <div class="flex items-center justify-between sticky top-0 bg-slate-900/95 py-1 z-10">
+                    <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-table text-cyan-400"></i> Schema Explorer
+                    </h3>
+                    <button onclick="renderSchema()" class="text-[11px] text-cyan-400 hover:underline"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+                </div>
+                <div id="schema-tree" class="space-y-3">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- Right Content Area: Code Editor & Results -->
+        <main class="flex-1 flex flex-col h-1/2 md:h-full overflow-hidden bg-slate-950">
+
+            <!-- SQL Editor Section -->
+            <div class="flex-1 flex flex-col border-b border-slate-800 min-h-[220px]">
+                <!-- Editor Toolbar -->
+                <div class="h-10 border-b border-slate-800 bg-slate-900/70 px-4 flex items-center justify-between text-xs shrink-0">
+                    <div class="flex items-center space-x-2 text-slate-400 font-mono">
+                        <i class="fa-solid fa-terminal text-cyan-400 text-xs"></i>
+                        <span>query.sql</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="insertSnippet('SELECT * FROM ')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px] font-mono transition">SELECT</button>
+                        <button onclick="insertSnippet('WHERE ')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px] font-mono transition">WHERE</button>
+                        <button onclick="insertSnippet('JOIN ')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px] font-mono transition">JOIN</button>
+                        <button onclick="clearEditor()" class="p-1.5 text-slate-400 hover:text-red-400 rounded transition" title="Clear Query">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Textarea Code Input -->
+                <div class="flex-1 relative bg-slate-950">
+                    <textarea id="sql-input" spellcheck="false" placeholder="-- Type your SQL query here..."
+                        class="w-full h-full bg-slate-950 text-emerald-400 font-mono text-sm p-4 focus:outline-none resize-none leading-relaxed tracking-wide placeholder-slate-600 selection:bg-cyan-900 selection:text-cyan-100"></textarea>
+                </div>
+
+                <!-- Run Control Bar -->
+                <div class="h-12 border-t border-slate-800 bg-slate-900/90 px-4 flex items-center justify-between shrink-0">
+                    <div id="execution-status" class="text-xs text-slate-400 font-mono flex items-center gap-2">
+                        <span>Press Ctrl+Enter to execute</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button id="run-btn" onclick="executeUserQuery()" class="px-5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-lg text-xs shadow-md shadow-cyan-500/20 active:scale-95 transition flex items-center gap-2">
+                            <i class="fa-solid fa-play"></i> Run Query
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results & Feedback Console -->
+            <div class="h-1/2 flex flex-col bg-slate-900/40 overflow-hidden">
+                <!-- Results Bar Header -->
+                <div class="h-9 border-b border-slate-800 bg-slate-900 px-4 flex items-center justify-between text-xs text-slate-400 shrink-0">
+                    <div class="flex items-center space-x-4 font-medium">
+                        <span class="text-slate-200 flex items-center gap-1.5"><i class="fa-solid fa-table-cells text-cyan-400"></i> Output Console</span>
+                        <span id="row-count-badge" class="text-[11px] text-slate-400">0 rows returned</span>
+                    </div>
+                    <div id="verification-badge" class="hidden text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                        <!-- Verification Status -->
+                    </div>
+                </div>
+
+                <!-- Results Output Display -->
+                <div id="results-container" class="flex-1 overflow-auto text-xs font-mono">
+                    <div class="h-full flex flex-col items-center justify-center text-slate-500 space-y-2 p-4">
+                        <i class="fa-solid fa-terminal text-2xl text-slate-700"></i>
+                        <p class="text-xs">Execute a query to see the output table here.</p>
+                    </div>
+                </div>
+
+                <!-- Bottom Navigation / Next Level Footer -->
+                <div id="success-footer" class="hidden h-14 border-t border-emerald-800/50 bg-emerald-950/30 px-4 flex items-center justify-between shrink-0 animate-fade-in">
+                    <div class="flex items-center space-x-2 text-emerald-400 text-xs font-medium">
+                        <i class="fa-solid fa-circle-check text-base"></i>
+                        <span>Challenge Completed! Excellent SQL query.</span>
+                    </div>
+                    <button id="next-level-btn" onclick="nextLevel()" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg text-xs shadow-lg shadow-emerald-500/20 transition flex items-center gap-1.5">
+                        Next Challenge <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal: Data Preview for Schema Explorer -->
+    <div id="preview-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col overflow-hidden">
+            <div class="px-4 py-3 border-b border-slate-800 flex items-center justify-between bg-slate-850">
+                <h3 id="modal-table-title" class="font-bold text-sm text-slate-200 font-mono">Table Preview</h3>
+                <button onclick="closeModal('preview-modal')" class="text-slate-400 hover:text-white text-base"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="modal-table-body" class="p-4 overflow-auto flex-1 font-mono text-xs">
+                <!-- Preview content -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: File Error Dialog -->
+    <div id="error-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-red-800/80 rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4 text-center">
+            <div class="w-12 h-12 bg-red-950 border border-red-500/40 text-red-400 rounded-full flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="font-bold text-base text-slate-100">File Loading Error</h3>
+            <p id="error-modal-msg" class="text-xs text-slate-300 leading-relaxed font-mono">
+                Unable to load specified question file.
+            </p>
+            <button onclick="dismissErrorAndTryNext()" class="w-full py-2 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold rounded-lg text-xs transition shadow-lg">
+                OK / Try Next File <i class="fa-solid fa-forward ml-1"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // --- SEQUENCE OF QUESTIONS TO LOAD ---
+        // Modify this array to reorder or specify which questions are loaded sequentially
+        const QUESTION_LIST = ['b1', 'b2', 'i1', 'i2', 'e1', 'e2'];
+
+        // Core App State
+        let db = null;
+        let SQL_ENGINE = null;
+        let isSqlJsReady = false;
+        let currentLevelIdx = 0;
+        let currentQuestionData = null;
+        let loadedDataId = null; // Currently loaded database structure ID
+        let cachedDatasets = {}; // Cache dataset definitions in memory
+        
+        let score = 0;
+        let streak = 0;
+        let hintUsed = false;
+
+        // --- APP INITIALIZATION ---
+        window.addEventListener('DOMContentLoaded', async () => {
+            initLevelDropdown();
+            setupKeyboardShortcuts();
+            await initSqlEngine();
+        });
+
+        // Initialize WebAssembly SQLite Engine
+        async function initSqlEngine() {
+            const badge = document.getElementById('engine-badge');
+            try {
+                const config = {
+                    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+                };
+                SQL_ENGINE = await initSqlJs(config);
+                db = new SQL_ENGINE.Database();
+                isSqlJsReady = true;
+
+                badge.className = "text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono flex items-center gap-1";
+                badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> SQLite Ready`;
+                
+                // Load first level
+                loadLevel(0);
+            } catch (err) {
+                console.error("SQLite initialization failed:", err);
+                badge.className = "text-[10px] bg-amber-950 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full font-mono flex items-center gap-1";
+                badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> JS Engine Fallback`;
+                loadLevel(0);
+            }
+        }
+
+        // Initialize Level Selector Dropdown
+        function initLevelDropdown() {
+            const select = document.getElementById('level-select');
+            select.innerHTML = '';
+            QUESTION_LIST.forEach((qId, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.textContent = `Question ${qId.toUpperCase()}`;
+                select.appendChild(opt);
+            });
+        }
+
+        // --- DYNAMIC QUESTION & DATA LOADER ---
+        async function loadLevel(index) {
+            if (index >= QUESTION_LIST.length) {
+                alert("🎉 Congratulations! You have completed all SQL Master Lab levels!");
+                return;
+            }
+
+            currentLevelIdx = index;
+            hintUsed = false;
+            document.getElementById('level-select').value = index;
+
+            const qId = QUESTION_LIST[index];
+
+            // Attempt to fetch question file
+            try {
+                const questionData = await fetchFile(`questions/${qId}.json`, `questions/${qId}.txt`);
+                currentQuestionData = questionData;
+
+                // Load required dataset if not already loaded
+                if (questionData.dataId !== loadedDataId) {
+                    await loadDataset(questionData.dataId);
+                }
+
+                // Render UI with current question
+                renderQuestionUI(questionData, index);
+
+            } catch (err) {
+                console.error(`Failed to load question file for ${qId}:`, err);
+                showErrorModal(`Failed to load question file: <b>questions/${qId}.json</b> or <b>.txt</b>.<br><br>Click OK to skip to the next question in the sequence.`);
+            }
+        }
+
+        // Load External Dataset (d1, d2, etc.)
+        async function loadDataset(dataId) {
+            try {
+                let dataset = cachedDatasets[dataId];
+                if (!dataset) {
+                    dataset = await fetchFile(`data/${dataId}.json`, `data/${dataId}.txt`);
+                    cachedDatasets[dataId] = dataset;
+                }
+
+                // Initialize / Reset Database with dataset SQL schema
+                if (isSqlJsReady && SQL_ENGINE) {
+                    db = new SQL_ENGINE.Database();
+                    db.run(dataset.schemaSql);
+                }
+
+                loadedDataId = dataId;
+                renderSchema(dataset.metadata);
+
+            } catch (err) {
+                console.error(`Failed to load dataset file for ${dataId}:`, err);
+                showErrorModal(`Failed to load dataset file: <b>data/${dataId}.json</b> or <b>.txt</b>.`);
+            }
+        }
+
+        // Generic JSON File Fetcher with fallback pathing
+        async function fetchFile(jsonPath, txtPath) {
+            try {
+                const res = await fetch(jsonPath);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return await res.json();
+            } catch (e1) {
+                const resTxt = await fetch(txtPath);
+                if (!resTxt.ok) throw new Error(`HTTP ${resTxt.status}`);
+                const textData = await resTxt.text();
+                return JSON.parse(textData);
+            }
+        }
+
+        // Update Left Sidebar UI with Question Data
+        function renderQuestionUI(qData, index) {
+            document.getElementById('level-num-badge').textContent = `Level ${index + 1} of ${QUESTION_LIST.length} (${qData.id.toUpperCase()})`;
+            document.getElementById('difficulty-badge').textContent = qData.difficulty || 'Intermediate';
+            document.getElementById('difficulty-badge').className = `text-[11px] font-medium ${qData.difficultyColor || 'text-amber-400'}`;
+            
+            document.getElementById('task-title').textContent = qData.title;
+            document.getElementById('task-desc').innerHTML = qData.description;
+            document.getElementById('task-objective').innerHTML = qData.objective;
+            
+            document.getElementById('hint-body').innerHTML = qData.hint || 'No hint provided.';
+            document.getElementById('hint-body').classList.add('hidden');
+            document.getElementById('hint-chevron').className = "fa-solid fa-chevron-down text-slate-500 text-[10px] transition-transform";
+
+            // Hide success footer & reset status
+            document.getElementById('success-footer').classList.add('hidden');
+            document.getElementById('verification-badge').classList.add('hidden');
+            document.getElementById('sql-input').value = "";
+        }
+
+        // --- ERROR MODAL HANDLING ---
+        function showErrorModal(message) {
+            document.getElementById('error-modal-msg').innerHTML = message;
+            document.getElementById('error-modal').classList.remove('hidden');
+        }
+
+        function dismissErrorAndTryNext() {
+            document.getElementById('error-modal').classList.add('hidden');
+            loadLevel(currentLevelIdx + 1);
+        }
+
+        // --- SCHEMA EXPLORER RENDERER ---
+        function renderSchema(fallbackMetadata = []) {
+            const container = document.getElementById('schema-tree');
+            if (!container) return;
+            container.innerHTML = '';
+
+            try {
+                let tables = [];
+
+                if (isSqlJsReady && db) {
+                    const res = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';");
+                    if (res.length > 0 && res[0].values) {
+                        tables = res[0].values.map(row => row[0]);
+                    }
+                }
+
+                if (tables.length === 0 && fallbackMetadata) {
+                    tables = fallbackMetadata.map(t => t.name);
+                }
+
+                tables.forEach(tableName => {
+                    let columns = [];
+
+                    if (isSqlJsReady && db) {
+                        try {
+                            const colRes = db.exec(`PRAGMA table_info('${tableName}');`);
+                            if (colRes.length > 0 && colRes[0].values) {
+                                columns = colRes[0].values.map(c => ({
+                                    name: c[1],
+                                    type: c[2],
+                                    pk: c[5] === 1
+                                }));
+                            }
+                        } catch (e) {
+                            console.warn(`Could not fetch PRAGMA info for ${tableName}`, e);
+                        }
+                    }
+
+                    if (columns.length === 0 && fallbackMetadata) {
+                        const meta = fallbackMetadata.find(m => m.name.toLowerCase() === tableName.toLowerCase());
+                        if (meta) columns = meta.columns;
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = "border border-slate-800 bg-slate-900/80 rounded-lg overflow-hidden";
+
+                    let colsHTML = '';
+                    columns.forEach(col => {
+                        colsHTML += `
+                            <div class="flex items-center justify-between text-[11px] font-mono text-slate-400 py-0.5">
+                                <span class="flex items-center gap-1.5">
+                                    <i class="fa-solid ${col.pk ? 'fa-key text-amber-400' : 'fa-columns text-slate-600'} text-[10px]"></i>
+                                    <span class="${col.pk ? 'text-slate-200 font-semibold' : 'text-slate-300'}">${escapeHtml(col.name)}</span>
+                                </span>
+                                <span class="text-[10px] text-slate-500 uppercase">${escapeHtml(col.type)}</span>
+                            </div>
+                        `;
+                    });
+
+                    card.innerHTML = `
+                        <div class="px-3 py-2 bg-slate-800/50 flex items-center justify-between cursor-pointer border-b border-slate-800/60" onclick="toggleSchemaCard('${tableName}')">
+                            <span class="font-mono text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                                <i class="fa-solid fa-database text-cyan-400 text-[10px]"></i> ${escapeHtml(tableName)}
+                            </span>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="event.stopPropagation(); previewTableData('${tableName}')" class="text-[10px] text-cyan-400 hover:text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/50">
+                                    Preview
+                                </button>
+                                <i id="chevron-${tableName}" class="fa-solid fa-chevron-down text-slate-500 text-[10px]"></i>
+                            </div>
+                        </div>
+                        <div id="cols-${tableName}" class="p-3 bg-slate-950/40 space-y-1">
+                            ${colsHTML}
+                        </div>
+                    `;
+
+                    container.appendChild(card);
+                });
+            } catch (err) {
+                console.error("Error rendering schema:", err);
+                container.innerHTML = `<div class="p-2 text-xs text-red-400 font-mono">Error loading database schema.</div>`;
+            }
+        }
+
+        function toggleSchemaCard(tableName) {
+            const colsDiv = document.getElementById(`cols-${tableName}`);
+            const chevron = document.getElementById(`chevron-${tableName}`);
+            if (colsDiv && chevron) {
+                if (colsDiv.classList.contains('hidden')) {
+                    colsDiv.classList.remove('hidden');
+                    chevron.className = "fa-solid fa-chevron-down text-slate-500 text-[10px]";
+                } else {
+                    colsDiv.classList.add('hidden');
+                    chevron.className = "fa-solid fa-chevron-right text-slate-500 text-[10px]";
+                }
+            }
+        }
+
+        // --- QUERY EXECUTION & VERIFICATION ENGINE ---
+        function executeUserQuery() {
+            const query = document.getElementById('sql-input').value.trim();
+            const container = document.getElementById('results-container');
+            const rowBadge = document.getElementById('row-count-badge');
+            const statusText = document.getElementById('execution-status');
+            const vBadge = document.getElementById('verification-badge');
+
+            if (!query) {
+                container.innerHTML = `<div class="p-4 text-amber-400 font-mono text-xs"><i class="fa-solid fa-triangle-exclamation"></i> Please type a SQL query before clicking Run.</div>`;
+                return;
+            }
+
+            const startTime = performance.now();
+
+            try {
+                let columns = [];
+                let values = [];
+
+                if (isSqlJsReady && db) {
+                    const result = db.exec(query);
+                    if (result.length > 0) {
+                        columns = result[0].columns;
+                        values = result[0].values;
+                    }
+                } else {
+                    columns = ["id", "result"];
+                    values = [[1, "Simulated execution output (SQLite engine offline)"]];
+                }
+
+                const executionTime = (performance.now() - startTime).toFixed(1);
+                statusText.innerHTML = `<span class="text-emerald-400"><i class="fa-solid fa-check"></i> Executed in ${executionTime}ms</span>`;
+                rowBadge.textContent = `${values.length} rows returned`;
+
+                // Render execution table
+                container.innerHTML = generateTableHTML(columns, values);
+
+                // Verify solution
+                verifySolution(query, columns, values);
+
+            } catch (err) {
+                statusText.innerHTML = `<span class="text-red-400"><i class="fa-solid fa-circle-xmark"></i> Execution Error</span>`;
+                rowBadge.textContent = `0 rows returned`;
+                vBadge.classList.add('hidden');
+
+                container.innerHTML = `
+                    <div class="p-4">
+                        <div class="bg-red-950/40 border border-red-800/60 rounded-lg p-4 font-mono text-red-300 text-xs space-y-2">
+                            <div class="font-bold flex items-center gap-1.5 text-red-400"><i class="fa-solid fa-triangle-exclamation"></i> SQL Syntax Error</div>
+                            <div>${escapeHtml(err.message || String(err))}</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function verifySolution(userQuery, userCols, userVals) {
+            if (!currentQuestionData) return;
+
+            const vBadge = document.getElementById('verification-badge');
+            const successFooter = document.getElementById('success-footer');
+
+            let isCorrect = false;
+
+            if (isSqlJsReady && db) {
+                try {
+                    const targetRes = db.exec(currentQuestionData.targetQuery);
+                    if (targetRes.length > 0) {
+                        const targetCols = targetRes[0].columns;
+                        const targetVals = targetRes[0].values;
+
+                        const userSig = JSON.stringify(userVals);
+                        const targetSig = JSON.stringify(targetVals);
+
+                        if (userCols.length === targetCols.length && userSig === targetSig) {
+                            isCorrect = true;
+                        }
+                    }
+                } catch (e) {
+                    console.error("Target query verification error:", e);
+                }
+            } else {
+                if (userQuery.toLowerCase().includes(currentQuestionData.targetQuery.toLowerCase().replace(';', ''))) {
+                    isCorrect = true;
+                }
+            }
+
+            if (isCorrect) {
+                vBadge.className = "text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/60 flex items-center gap-1";
+                vBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Correct Solution!`;
+                vBadge.classList.remove('hidden');
+                successFooter.classList.remove('hidden');
+
+                let ptsEarned = currentQuestionData.points || 100;
+                if (hintUsed) ptsEarned = Math.max(10, ptsEarned - 15);
+
+                score += ptsEarned;
+                streak += 1;
+                updateScoreboard();
+
+                confetti({
+                    particleCount: 50,
+                    spread: 60,
+                    origin: { y: 0.85 }
+                });
+            } else {
+                vBadge.className = "text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-950 text-amber-400 border border-amber-800/60 flex items-center gap-1";
+                vBadge.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Output does not match objective`;
+                vBadge.classList.remove('hidden');
+                successFooter.classList.add('hidden');
+            }
+        }
+
+        // Preview Table Data Modal
+        function previewTableData(tableName) {
+            const modal = document.getElementById('preview-modal');
+            const title = document.getElementById('modal-table-title');
+            const body = document.getElementById('modal-table-body');
+
+            title.textContent = `Table Preview: ${tableName}`;
+            
+            if (isSqlJsReady && db) {
+                try {
+                    const res = db.exec(`SELECT * FROM ${tableName} LIMIT 10;`);
+                    if (res.length > 0) {
+                        body.innerHTML = generateTableHTML(res[0].columns, res[0].values, true);
+                    } else {
+                        body.innerHTML = `<div class="p-3 text-slate-500 italic">Table is empty.</div>`;
+                    }
+                } catch (err) {
+                    body.innerHTML = `<div class="p-3 text-red-400 font-mono text-xs">Error querying table: ${escapeHtml(err.message)}</div>`;
+                }
+            } else {
+                body.innerHTML = `<div class="p-3 text-amber-400 font-mono text-xs">SQLite engine is offline. Data preview unavailable.</div>`;
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // --- UTILITY HELPERS ---
+        function generateTableHTML(columns, values, isSmall = false) {
+            if (!columns || columns.length === 0) {
+                return `<div class="p-3 text-slate-500 italic">Query executed successfully (0 columns returned).</div>`;
+            }
+
+            let html = `<table class="w-full text-left border-collapse">
+                <thead>
+                    <tr>`;
+            
+            columns.forEach(col => {
+                html += `<th class="p-2.5 font-semibold sticky top-0 bg-slate-900 border-b border-slate-800 text-slate-400 uppercase text-[10px] tracking-wider font-mono z-10 shadow-sm">${escapeHtml(col)}</th>`;
+            });
+            html += `</tr></thead><tbody class="divide-y divide-slate-800/60 font-mono text-slate-300">`;
+
+            values.forEach(row => {
+                html += `<tr class="hover:bg-slate-800/40 transition">`;
+                row.forEach(cell => {
+                    const display = cell === null ? `<span class="text-slate-600 italic">NULL</span>` : escapeHtml(String(cell));
+                    html += `<td class="p-2.5 whitespace-nowrap">${display}</td>`;
+                });
+                html += `</tr>`;
+            });
+
+            html += `</tbody></table>`;
+            return html;
+        }
+
+        function toggleHint() {
+            const body = document.getElementById('hint-body');
+            const chevron = document.getElementById('hint-chevron');
+            if (body.classList.contains('hidden')) {
+                body.classList.remove('hidden');
+                chevron.className = "fa-solid fa-chevron-up text-slate-500 text-[10px] transition-transform";
+                hintUsed = true;
+            } else {
+                body.classList.add('hidden');
+                chevron.className = "fa-solid fa-chevron-down text-slate-500 text-[10px] transition-transform";
+            }
+        }
+
+        function insertSnippet(text) {
+            const input = document.getElementById('sql-input');
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+            const val = input.value;
+
+            input.value = val.substring(0, start) + text + val.substring(end);
+            input.focus();
+            input.selectionStart = input.selectionEnd = start + text.length;
+        }
+
+        function clearEditor() {
+            document.getElementById('sql-input').value = '';
+            document.getElementById('sql-input').focus();
+        }
+
+        function nextLevel() {
+            loadLevel(currentLevelIdx + 1);
+        }
+
+        function updateScoreboard() {
+            document.getElementById('score-display').textContent = score;
+            document.getElementById('streak-display').textContent = streak;
+        }
+
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    executeUserQuery();
+                }
+            });
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, "&amp;")
+                              .replace(/</g, "&lt;")
+                              .replace(/>/g, "&gt;")
+                              .replace(/"/g, "&quot;")
+                              .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
