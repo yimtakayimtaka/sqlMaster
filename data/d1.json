@@ -1,0 +1,26 @@
+{
+"id": "d1",
+"schemaSql": "CREATE TABLE Products (id INTEGER PRIMARY KEY, name TEXT, category TEXT, price REAL, stock INTEGER); INSERT INTO Products VALUES (1, 'Pro Mechanical Keyboard', 'Electronics', 129.99, 45), (2, 'Ergonomic Wireless Mouse', 'Electronics', 49.99, 120), (3, '4K Ultra HD Monitor', 'Electronics', 349.50, 18), (4, 'Noise Cancelling Headphones', 'Audio', 199.00, 30), (5, 'USB-C Desk Hub', 'Accessories', 29.99, 85); CREATE TABLE Employees (id INTEGER PRIMARY KEY, name TEXT, department TEXT, salary REAL, hire_date TEXT); INSERT INTO Employees VALUES (1, 'Alice Vance', 'Engineering', 95000, '2021-03-15'), (2, 'Bob Martinez', 'Engineering', 88000, '2022-01-10');",
+"metadata": [
+{
+"name": "Products",
+"columns": [
+{ "name": "id", "type": "INTEGER", "pk": true },
+{ "name": "name", "type": "TEXT", "pk": false },
+{ "name": "category", "type": "TEXT", "pk": false },
+{ "name": "price", "type": "REAL", "pk": false },
+{ "name": "stock", "type": "INTEGER", "pk": false }
+]
+},
+{
+"name": "Employees",
+"columns": [
+{ "name": "id", "type": "INTEGER", "pk": true },
+{ "name": "name", "type": "TEXT", "pk": false },
+{ "name": "department", "type": "TEXT", "pk": false },
+{ "name": "salary", "type": "REAL", "pk": false },
+{ "name": "hire_date", "type": "TEXT", "pk": false }
+]
+}
+]
+}
