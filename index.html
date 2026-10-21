@@ -433,7 +433,6 @@
             }
         }
 
-        // Separate table names and column names into distinct collections for distinct coloring
         function extractDatabaseSchemaObjects(metadata) {
             knownTableNames.clear();
             knownColumnNames.clear();
@@ -537,7 +536,7 @@
                     let colsHTML = '';
                     columns.forEach(col => {
                         colsHTML += `
-                            <div onclick="insertSnippet('${escapeHtml(col.name)}') " title="Click to insert column name" class="flex items-center justify-between text-[11px] font-mono text-slate-400 py-1 px-2 hover:bg-slate-800/80 cursor-pointer rounded transition">
+                            <div onclick="insertSnippet('${escapeHtml(col.name).replace(/'/g, "\\'")}')" title="Click to insert column name" class="flex items-center justify-between text-[11px] font-mono text-slate-400 py-1 px-2 hover:bg-slate-800/80 cursor-pointer rounded transition">
                                 <span class="flex items-center gap-1.5">
                                     <i class="fa-solid ${col.pk ? 'fa-key text-amber-400' : 'fa-columns text-slate-600'} text-[10px]"></i>
                                     <span class="${col.pk ? 'text-slate-200 font-semibold' : 'text-slate-300'}">${escapeHtml(col.name)}</span>
@@ -548,18 +547,18 @@
                     });
 
                     card.innerHTML = `
-                        <div class="px-3 py-2 bg-slate-800/50 flex items-center justify-between cursor-pointer border-b border-slate-800/60 hover:bg-slate-800 transition" onclick="toggleSchemaCard('${tableName}')">
-                            <span onclick="event.stopPropagation(); insertSnippet('${escapeHtml(tableName)}')" title="Click to insert table name" class="font-mono text-xs font-bold text-cyan-300 hover:text-cyan-200 flex items-center gap-1.5">
+                        <div class="px-3 py-2 bg-slate-800/50 flex items-center justify-between cursor-pointer border-b border-slate-800/60 hover:bg-slate-800 transition" onclick="toggleSchemaCard('${escapeHtml(tableName)}')">
+                            <span onclick="event.stopPropagation(); insertSnippet('${escapeHtml(tableName).replace(/'/g, "\\'")}')" title="Click to insert table name" class="font-mono text-xs font-bold text-cyan-300 hover:text-cyan-200 flex items-center gap-1.5">
                                 <i class="fa-solid fa-database text-cyan-400 text-[10px]"></i> ${escapeHtml(tableName)}
                             </span>
                             <div class="flex items-center space-x-2">
-                                <button onclick="event.stopPropagation(); previewTableData('${tableName}')" class="text-[10px] text-cyan-400 hover:text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/50">
+                                <button onclick="event.stopPropagation(); previewTableData('${escapeHtml(tableName).replace(/'/g, "\\'")}')" class="text-[10px] text-cyan-400 hover:text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/50">
                                     Preview
                                 </button>
-                                <i id="chevron-${tableName}" class="fa-solid fa-chevron-down text-slate-500 text-[10px]"></i>
+                                <i id="chevron-${escapeHtml(tableName)}" class="fa-solid fa-chevron-down text-slate-500 text-[10px]"></i>
                             </div>
                         </div>
-                        <div id="cols-${tableName}" class="p-1.5 bg-slate-950/40 space-y-0.5">
+                        <div id="cols-${escapeHtml(tableName)}" class="p-1.5 bg-slate-950/40 space-y-0.5">
                             ${colsHTML}
                         </div>
                     `;
@@ -586,7 +585,7 @@
             }
         }
 
-        // --- SYNTAX HIGHLIGHTER & EDITOR ENGINE ---
+        // --- SYNTAX HIGHLIGHTER & TOKEN-BOUNDARY ENGINE ---
         function toggleSyntaxHighlighting() {
             syntaxHighlightingEnabled = !syntaxHighlightingEnabled;
             const label = document.getElementById('syntax-mode-label');
@@ -624,35 +623,50 @@
         function highlightSQL(text) {
             if (!text) return '';
             
-            const keywords = /\b(SELECT|FROM|WHERE|INSERT|INTO|UPDATE|SET|DELETE|CREATE|DROP|TABLE|ALTER|JOIN|INNER|LEFT|RIGHT|OUTER|ON|GROUP|BY|ORDER|HAVING|LIMIT|AS|DISTINCT|COUNT|AVG|SUM|MIN|MAX|AND|OR|NOT|IN|LIKE|IS|NULL|VALUES|ASC|DESC)\b/gi;
-            const comments = /(--.*)/g;
-            const strings = /('(?:[^']|'')*')/g;
-            const numbers = /\b(\d+(?:\.\d+)?)\b/g;
+            // Tokenizer regex that captures string literals, comments, numbers, and words separately
+            // This prevents highlighting matches inside quotes or inside other words.
+            const tokenRegex = /('(?:[^']|'')*'|"(?:[^"]|"")*"|--.*|\b\d+(?:\.\d+)?\b|\b[a-zA-Z_][a-zA-Z0-9_]*\b|[^\s\w]|\s+)/g;
+            
+            const keywords = new Set([
+                'SELECT', 'FROM', 'WHERE', 'INSERT', 'INTO', 'UPDATE', 'SET', 'DELETE',
+                'CREATE', 'DROP', 'TABLE', 'ALTER', 'JOIN', 'INNER', 'LEFT', 'RIGHT',
+                'OUTER', 'ON', 'GROUP', 'BY', 'ORDER', 'HAVING', 'LIMIT', 'AS', 'DISTINCT',
+                'COUNT', 'AVG', 'SUM', 'MIN', 'MAX', 'AND', 'OR', 'NOT', 'IN', 'LIKE',
+                'IS', 'NULL', 'VALUES', 'ASC', 'DESC'
+            ]);
 
-            let escaped = escapeHtml(text);
+            let match;
+            let resultHTML = '';
 
-            // Replace comments first
-            escaped = escaped.replace(comments, '<span class="sql-comment">$1</span>');
-            // Strings
-            escaped = escaped.replace(strings, '<span class="sql-string">$1</span>');
-            // Keywords
-            escaped = escaped.replace(keywords, '<span class="sql-keyword">$1</span>');
-            // Numbers
-            escaped = escaped.replace(numbers, '<span class="sql-number">$1</span>');
+            while ((match = tokenRegex.exec(text)) !== null) {
+                const token = match[0];
+                const upperToken = token.toUpperCase();
 
-            // Highlight Table names uniquely (Cyan)
-            if (knownTableNames.size > 0) {
-                const tableRegex = new RegExp(`\\b(${Array.from(knownTableNames).join('|')})\\b`, 'gi');
-                escaped = escaped.replace(tableRegex, '<span class="sql-table-name">$1</span>');
+                if (token.startsWith("'") || token.startsWith('"')) {
+                    // String literal
+                    resultHTML += `<span class="sql-string">${escapeHtml(token)}</span>`;
+                } else if (token.startsWith('--')) {
+                    // Comment
+                    resultHTML += `<span class="sql-comment">${escapeHtml(token)}</span>`;
+                } else if (/^\d+(\.\d+)?$/.test(token)) {
+                    // Number
+                    resultHTML += `<span class="sql-number">${escapeHtml(token)}</span>`;
+                } else if (keywords.has(upperToken)) {
+                    // Keyword
+                    resultHTML += `<span class="sql-keyword">${escapeHtml(token)}</span>`;
+                } else if (knownTableNames.has(token.toLowerCase())) {
+                    // Table name (Cyan)
+                    resultHTML += `<span class="sql-table-name">${escapeHtml(token)}</span>`;
+                } else if (knownColumnNames.has(token.toLowerCase())) {
+                    // Column name (Lighter Sky Blue)
+                    resultHTML += `<span class="sql-col-name">${escapeHtml(token)}</span>`;
+                } else {
+                    // Default text/whitespace/symbols
+                    resultHTML += escapeHtml(token);
+                }
             }
 
-            // Highlight Column names uniquely (Lighter Sky Blue)
-            if (knownColumnNames.size > 0) {
-                const colRegex = new RegExp(`\\b(${Array.from(knownColumnNames).join('|')})\\b`, 'gi');
-                escaped = escaped.replace(colRegex, '<span class="sql-col-name">$1</span>');
-            }
-
-            return escaped;
+            return resultHTML;
         }
 
         // --- QUERY EXECUTION & SELECTION SUPPORT ---
@@ -660,7 +674,6 @@
             const textarea = document.getElementById('sql-input');
             let query = "";
 
-            // Check if user has selected a portion of text; if so, run only selection, else run all
             if (textarea.selectionStart !== textarea.selectionEnd) {
                 query = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd).trim();
             } else {
@@ -808,7 +821,6 @@
             document.getElementById(id).classList.add('hidden');
         }
 
-        // Helper to insert snippet and automatically close preview modal if clicked from inside preview
         function insertAndClosePreview(text) {
             insertSnippet(text);
             closeModal('preview-modal');
@@ -824,7 +836,8 @@
                     <tr>`;
             
             columns.forEach(col => {
-                const clickAction = isPreview ? `insertAndClosePreview('${escapeHtml(col)}')` : `insertSnippet('${escapeHtml(col)}')`;
+                const safeCol = escapeHtml(col).replace(/'/g, "\\'");
+                const clickAction = isPreview ? `insertAndClosePreview('${safeCol}')` : `insertSnippet('${safeCol}')`;
                 html += `<th onclick="${clickAction}" title="Click to insert column name" class="p-2.5 font-semibold sticky top-0 bg-slate-900 border-b border-slate-800 text-cyan-400 hover:text-cyan-300 uppercase text-[10px] tracking-wider font-mono z-10 shadow-sm cursor-pointer transition">${escapeHtml(col)}</th>`;
             });
             html += `</tr></thead><tbody class="divide-y divide-slate-800/60 font-mono text-slate-300">`;
@@ -834,7 +847,8 @@
                 row.forEach(cell => {
                     const display = cell === null ? `<span class="text-slate-600 italic">NULL</span>` : escapeHtml(String(cell));
                     const rawVal = cell === null ? 'NULL' : String(cell);
-                    const clickAction = isPreview ? `insertAndClosePreview('${escapeHtml(rawVal)}')` : `insertSnippet('${escapeHtml(rawVal)}')`;
+                    const safeVal = escapeHtml(rawVal).replace(/'/g, "\\'");
+                    const clickAction = isPreview ? `insertAndClosePreview('${safeVal}')` : `insertSnippet('${safeVal}')`;
                     html += `<td onclick="${clickAction}" title="Click to insert value" class="p-2.5 whitespace-nowrap interactive-cell">${display}</td>`;
                 });
                 html += `</tr>`;
