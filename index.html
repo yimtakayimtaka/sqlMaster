@@ -192,8 +192,13 @@
                         <span>Press Ctrl+Enter to execute</span>
                     </div>
                     <div class="flex items-center space-x-3">
-                        <button id="run-btn" onclick="executeUserQuery()" class="px-5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-lg text-xs shadow-md shadow-cyan-500/20 active:scale-95 transition flex items-center gap-2">
-                            <i class="fa-solid fa-play"></i> Run Query
+                        <!-- Run Button (Execute only, no verification) -->
+                        <button id="run-only-btn" onclick="executeUserQuery(false)" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold rounded-lg text-xs shadow-md active:scale-95 transition flex items-center gap-2">
+                            <i class="fa-solid fa-play text-cyan-400"></i> Run
+                        </button>
+                        <!-- Run and Submit Button (Execute & verify solution) -->
+                        <button id="run-btn" onclick="executeUserQuery(true)" class="px-5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-lg text-xs shadow-md shadow-cyan-500/20 active:scale-95 transition flex items-center gap-2">
+                            <i class="fa-solid fa-paper-plane"></i> Run and Submit
                         </button>
                     </div>
                 </div>
@@ -257,20 +262,24 @@
             <p id="error-modal-msg" class="text-xs text-slate-300 leading-relaxed font-mono">
                 Unable to load specified question file.
             </p>
-            <button onclick="dismissErrorAndTryNext()" class="w-full py-2 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold rounded-lg text-xs transition shadow-lg">
-                OK / Try Next File <i class="fa-solid fa-forward ml-1"></i>
-            </button>
+            <div class="flex items-center justify-center gap-3 pt-2">
+                <button onclick="closeModal('error-modal')" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-lg text-xs transition border border-slate-700">
+                    Close
+                </button>
+                <button onclick="dismissErrorAndTryNext()" class="flex-1 py-2 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold rounded-lg text-xs transition shadow-lg">
+                    Try Next File <i class="fa-solid fa-forward ml-1"></i>
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Application Logic -->
     <script>
         // --- SEQUENCE OF QUESTIONS TO LOAD ---
-        // Modify this array to reorder or specify which questions are loaded sequentially
         const QUESTION_LIST = [
-			'b1', 'b2', 'i1', 'i2', 'e1', 'e2', // Dataset d1 (E-Commerce Store)
-			'b3', 'b4', 'i3', 'i4', 'e3', 'e4'  // Dataset d2 (University Academic Portal)
-		];
+            'b1', 'b2', 'i1', 'i2', 'e1', 'e2', // Dataset d1 (E-Commerce Store)
+            'b3', 'b4', 'i3', 'i4', 'e3', 'e4'  // Dataset d2 (University Academic Portal)
+        ];
 
         // Core App State
         let db = null;
@@ -328,6 +337,26 @@
             });
         }
 
+        // Reset Output Console
+        function resetOutputConsole() {
+            const container = document.getElementById('results-container');
+            const rowBadge = document.getElementById('row-count-badge');
+            const statusText = document.getElementById('execution-status');
+            const vBadge = document.getElementById('verification-badge');
+            const successFooter = document.getElementById('success-footer');
+
+            container.innerHTML = `
+                <div class="h-full flex flex-col items-center justify-center text-slate-500 space-y-2 p-4">
+                    <i class="fa-solid fa-terminal text-2xl text-slate-700"></i>
+                    <p class="text-xs">Execute a query to see the output table here.</p>
+                </div>`;
+            
+            rowBadge.textContent = "0 rows returned";
+            statusText.innerHTML = "<span>Press Ctrl+Enter to execute</span>";
+            vBadge.classList.add('hidden');
+            successFooter.classList.add('hidden');
+        }
+
         // --- DYNAMIC QUESTION & DATA LOADER ---
         async function loadLevel(index) {
             if (index >= QUESTION_LIST.length) {
@@ -338,6 +367,9 @@
             currentLevelIdx = index;
             hintUsed = false;
             document.getElementById('level-select').value = index;
+
+            // Clear output console on new question
+            resetOutputConsole();
 
             const qId = QUESTION_LIST[index];
 
@@ -356,7 +388,7 @@
 
             } catch (err) {
                 console.error(`Failed to load question file for ${qId}:`, err);
-                showErrorModal(`Failed to load question file: <b>questions/${qId}.json</b> or <b>.txt</b>.<br><br>Click OK to skip to the next question in the sequence.`);
+                showErrorModal(`Failed to load question file: <b>questions/${qId}.json</b> or <b>.txt</b>.`);
             }
         }
 
@@ -412,9 +444,6 @@
             document.getElementById('hint-body').classList.add('hidden');
             document.getElementById('hint-chevron').className = "fa-solid fa-chevron-down text-slate-500 text-[10px] transition-transform";
 
-            // Hide success footer & reset status
-            document.getElementById('success-footer').classList.add('hidden');
-            document.getElementById('verification-badge').classList.add('hidden');
             document.getElementById('sql-input').value = "";
         }
 
@@ -528,7 +557,7 @@
         }
 
         // --- QUERY EXECUTION & VERIFICATION ENGINE ---
-        function executeUserQuery() {
+        function executeUserQuery(shouldSubmit = true) {
             const query = document.getElementById('sql-input').value.trim();
             const container = document.getElementById('results-container');
             const rowBadge = document.getElementById('row-count-badge');
@@ -564,8 +593,13 @@
                 // Render execution table
                 container.innerHTML = generateTableHTML(columns, values);
 
-                // Verify solution
-                verifySolution(query, columns, values);
+                // Verify solution if "Run and Submit" was clicked
+                if (shouldSubmit) {
+                    verifySolution(query, columns, values);
+                } else {
+                    // Hide verification badge for normal Run
+                    vBadge.classList.add('hidden');
+                }
 
             } catch (err) {
                 statusText.innerHTML = `<span class="text-red-400"><i class="fa-solid fa-circle-xmark"></i> Execution Error</span>`;
@@ -740,7 +774,7 @@
             document.addEventListener('keydown', (e) => {
                 if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                     e.preventDefault();
-                    executeUserQuery();
+                    executeUserQuery(true);
                 }
             });
         }
