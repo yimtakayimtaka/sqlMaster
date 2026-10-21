@@ -56,6 +56,17 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #475569;
         }
+        /* Custom highlighter overlay styling */
+        .editor-backdrop {
+            pointer-events: none;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .sql-keyword { color: #c084fc; font-weight: bold; } /* Purple */
+        .sql-string  { color: #fbbf24; } /* Amber */
+        .sql-number  { color: #38bdf8; } /* Sky Blue */
+        .sql-comment { color: #64748b; font-style: italic; } /* Slate Gray */
+        .sql-identifier { color: #f8fafc; } /* Default White */
     </style>
 </head>
 <body class="h-full font-sans antialiased bg-slate-950 text-slate-100 flex flex-col overflow-hidden">
@@ -170,7 +181,11 @@
                         <i class="fa-solid fa-terminal text-cyan-400 text-xs"></i>
                         <span>query.sql</span>
                     </div>
-                    <div class="flex items-center space-x-2">
+                    <div class="flex items-center space-x-3">
+                        <button onclick="toggleSyntaxHighlighting()" id="syntax-toggle-btn" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 rounded text-[11px] font-mono transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Mode: <span id="syntax-mode-label">Syntax Highlighting</span>
+                        </button>
+                        <div class="h-4 w-px bg-slate-700"></div>
                         <button onclick="insertSnippet('SELECT * FROM ')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px] font-mono transition">SELECT</button>
                         <button onclick="insertSnippet('WHERE ')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px] font-mono transition">WHERE</button>
                         <button onclick="insertSnippet('JOIN ')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px] font-mono transition">JOIN</button>
@@ -180,10 +195,11 @@
                     </div>
                 </div>
 
-                <!-- Textarea Code Input -->
-                <div class="flex-1 relative bg-slate-950">
-                    <textarea id="sql-input" spellcheck="false" placeholder="-- Type your SQL query here..."
-                        class="w-full h-full bg-slate-950 text-emerald-400 font-mono text-sm p-4 focus:outline-none resize-none leading-relaxed tracking-wide placeholder-slate-600 selection:bg-cyan-900 selection:text-cyan-100"></textarea>
+                <!-- Textarea Code Input & Highlight Overlay Wrapper -->
+                <div class="flex-1 relative bg-slate-950 overflow-hidden">
+                    <div id="highlight-layer" class="absolute inset-0 p-4 font-mono text-sm leading-relaxed tracking-wide editor-backdrop overflow-hidden z-0"></div>
+                    <textarea id="sql-input" spellcheck="false" placeholder="-- Type your SQL query here..." oninput="handleEditorInput()" onscroll="syncScroll()"
+                        class="absolute inset-0 w-full h-full bg-transparent text-transparent caret-emerald-400 font-mono text-sm p-4 focus:outline-none resize-none leading-relaxed tracking-wide selection:bg-cyan-900 selection:text-cyan-100 z-10"></textarea>
                 </div>
 
                 <!-- Run Control Bar -->
@@ -192,11 +208,9 @@
                         <span>Press Ctrl+Enter to execute</span>
                     </div>
                     <div class="flex items-center space-x-3">
-                        <!-- Run Button (Execute only, no verification) -->
                         <button id="run-only-btn" onclick="executeUserQuery(false)" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold rounded-lg text-xs shadow-md active:scale-95 transition flex items-center gap-2">
                             <i class="fa-solid fa-play text-cyan-400"></i> Run
                         </button>
-                        <!-- Run and Submit Button (Execute & verify solution) -->
                         <button id="run-btn" onclick="executeUserQuery(true)" class="px-5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold rounded-lg text-xs shadow-md shadow-cyan-500/20 active:scale-95 transition flex items-center gap-2">
                             <i class="fa-solid fa-paper-plane"></i> Run and Submit
                         </button>
@@ -287,8 +301,9 @@
         let isSqlJsReady = false;
         let currentLevelIdx = 0;
         let currentQuestionData = null;
-        let loadedDataId = null; // Currently loaded database structure ID
-        let cachedDatasets = {}; // Cache dataset definitions in memory
+        let loadedDataId = null;
+        let cachedDatasets = {};
+        let syntaxHighlightingEnabled = true; // Toggle state
         
         let score = 0;
         let streak = 0;
@@ -301,7 +316,6 @@
             await initSqlEngine();
         });
 
-        // Initialize WebAssembly SQLite Engine
         async function initSqlEngine() {
             const badge = document.getElementById('engine-badge');
             try {
@@ -315,7 +329,6 @@
                 badge.className = "text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono flex items-center gap-1";
                 badge.innerHTML = `<i class="fa-solid fa-circle-check"></i> SQLite Ready`;
                 
-                // Load first level
                 loadLevel(0);
             } catch (err) {
                 console.error("SQLite initialization failed:", err);
@@ -325,7 +338,6 @@
             }
         }
 
-        // Initialize Level Selector Dropdown
         function initLevelDropdown() {
             const select = document.getElementById('level-select');
             select.innerHTML = '';
@@ -337,7 +349,6 @@
             });
         }
 
-        // Reset Output Console
         function resetOutputConsole() {
             const container = document.getElementById('results-container');
             const rowBadge = document.getElementById('row-count-badge');
@@ -357,7 +368,6 @@
             successFooter.classList.add('hidden');
         }
 
-        // --- DYNAMIC QUESTION & DATA LOADER ---
         async function loadLevel(index) {
             if (index >= QUESTION_LIST.length) {
                 alert("🎉 Congratulations! You have completed all SQL Master Lab levels!");
@@ -368,31 +378,25 @@
             hintUsed = false;
             document.getElementById('level-select').value = index;
 
-            // Clear output console on new question
             resetOutputConsole();
 
             const qId = QUESTION_LIST[index];
 
-            // Attempt to fetch question file
             try {
                 const questionData = await fetchFile(`questions/${qId}.json`, `questions/${qId}.txt`);
                 currentQuestionData = questionData;
 
-                // Load required dataset if not already loaded
                 if (questionData.dataId !== loadedDataId) {
                     await loadDataset(questionData.dataId);
                 }
 
-                // Render UI with current question
                 renderQuestionUI(questionData, index);
-
             } catch (err) {
                 console.error(`Failed to load question file for ${qId}:`, err);
                 showErrorModal(`Failed to load question file: <b>questions/${qId}.json</b> or <b>.txt</b>.`);
             }
         }
 
-        // Load External Dataset (d1, d2, etc.)
         async function loadDataset(dataId) {
             try {
                 let dataset = cachedDatasets[dataId];
@@ -401,7 +405,6 @@
                     cachedDatasets[dataId] = dataset;
                 }
 
-                // Initialize / Reset Database with dataset SQL schema
                 if (isSqlJsReady && SQL_ENGINE) {
                     db = new SQL_ENGINE.Database();
                     db.run(dataset.schemaSql);
@@ -409,14 +412,12 @@
 
                 loadedDataId = dataId;
                 renderSchema(dataset.metadata);
-
             } catch (err) {
                 console.error(`Failed to load dataset file for ${dataId}:`, err);
                 showErrorModal(`Failed to load dataset file: <b>data/${dataId}.json</b> or <b>.txt</b>.`);
             }
         }
 
-        // Generic JSON File Fetcher with fallback pathing
         async function fetchFile(jsonPath, txtPath) {
             try {
                 const res = await fetch(jsonPath);
@@ -430,7 +431,6 @@
             }
         }
 
-        // Update Left Sidebar UI with Question Data
         function renderQuestionUI(qData, index) {
             document.getElementById('level-num-badge').textContent = `Level ${index + 1} of ${QUESTION_LIST.length} (${qData.id.toUpperCase()})`;
             document.getElementById('difficulty-badge').textContent = qData.difficulty || 'Intermediate';
@@ -445,9 +445,9 @@
             document.getElementById('hint-chevron').className = "fa-solid fa-chevron-down text-slate-500 text-[10px] transition-transform";
 
             document.getElementById('sql-input').value = "";
+            handleEditorInput();
         }
 
-        // --- ERROR MODAL HANDLING ---
         function showErrorModal(message) {
             document.getElementById('error-modal-msg').innerHTML = message;
             document.getElementById('error-modal').classList.remove('hidden');
@@ -458,7 +458,7 @@
             loadLevel(currentLevelIdx + 1);
         }
 
-        // --- SCHEMA EXPLORER RENDERER ---
+        // --- SCHEMA EXPLORER & CLICK-TO-INSERT ---
         function renderSchema(fallbackMetadata = []) {
             const container = document.getElementById('schema-tree');
             if (!container) return;
@@ -507,7 +507,7 @@
                     let colsHTML = '';
                     columns.forEach(col => {
                         colsHTML += `
-                            <div class="flex items-center justify-between text-[11px] font-mono text-slate-400 py-0.5">
+                            <div onclick="insertSnippet('${escapeHtml(col.name)}') " title="Click to insert column name" class="flex items-center justify-between text-[11px] font-mono text-slate-400 py-1 px-2 hover:bg-slate-800/80 cursor-pointer rounded transition">
                                 <span class="flex items-center gap-1.5">
                                     <i class="fa-solid ${col.pk ? 'fa-key text-amber-400' : 'fa-columns text-slate-600'} text-[10px]"></i>
                                     <span class="${col.pk ? 'text-slate-200 font-semibold' : 'text-slate-300'}">${escapeHtml(col.name)}</span>
@@ -518,8 +518,8 @@
                     });
 
                     card.innerHTML = `
-                        <div class="px-3 py-2 bg-slate-800/50 flex items-center justify-between cursor-pointer border-b border-slate-800/60" onclick="toggleSchemaCard('${tableName}')">
-                            <span class="font-mono text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                        <div class="px-3 py-2 bg-slate-800/50 flex items-center justify-between cursor-pointer border-b border-slate-800/60 hover:bg-slate-800 transition" onclick="toggleSchemaCard('${tableName}')">
+                            <span onclick="event.stopPropagation(); insertSnippet('${escapeHtml(tableName)}')" title="Click to insert table name" class="font-mono text-xs font-bold text-cyan-300 hover:text-cyan-200 flex items-center gap-1.5">
                                 <i class="fa-solid fa-database text-cyan-400 text-[10px]"></i> ${escapeHtml(tableName)}
                             </span>
                             <div class="flex items-center space-x-2">
@@ -529,7 +529,7 @@
                                 <i id="chevron-${tableName}" class="fa-solid fa-chevron-down text-slate-500 text-[10px]"></i>
                             </div>
                         </div>
-                        <div id="cols-${tableName}" class="p-3 bg-slate-950/40 space-y-1">
+                        <div id="cols-${tableName}" class="p-1.5 bg-slate-950/40 space-y-0.5">
                             ${colsHTML}
                         </div>
                     `;
@@ -554,6 +554,64 @@
                     chevron.className = "fa-solid fa-chevron-right text-slate-500 text-[10px]";
                 }
             }
+        }
+
+        // --- SYNTAX HIGHLIGHTER & EDITOR ENGINE ---
+        function toggleSyntaxHighlighting() {
+            syntaxHighlightingEnabled = !syntaxHighlightingEnabled;
+            const label = document.getElementById('syntax-mode-label');
+            const textarea = document.getElementById('sql-input');
+            
+            if (syntaxHighlightingEnabled) {
+                label.textContent = "Syntax Highlighting";
+                textarea.className = "absolute inset-0 w-full h-full bg-transparent text-transparent caret-emerald-400 font-mono text-sm p-4 focus:outline-none resize-none leading-relaxed tracking-wide selection:bg-cyan-900 selection:text-cyan-100 z-10";
+            } else {
+                label.textContent = "Monochrome Green";
+                textarea.className = "absolute inset-0 w-full h-full bg-transparent text-emerald-400 caret-emerald-400 font-mono text-sm p-4 focus:outline-none resize-none leading-relaxed tracking-wide selection:bg-cyan-900 selection:text-cyan-100 z-10";
+            }
+            handleEditorInput();
+        }
+
+        function handleEditorInput() {
+            const val = document.getElementById('sql-input').value;
+            const layer = document.getElementById('highlight-layer');
+
+            if (!syntaxHighlightingEnabled) {
+                layer.innerHTML = '';
+                return;
+            }
+
+            layer.innerHTML = highlightSQL(val) + '<br>';
+        }
+
+        function syncScroll() {
+            const textarea = document.getElementById('sql-input');
+            const layer = document.getElementById('highlight-layer');
+            layer.scrollTop = textarea.scrollTop;
+            layer.scrollLeft = textarea.scrollLeft;
+        }
+
+        function highlightSQL(text) {
+            if (!text) return '';
+            
+            const keywords = /\b(SELECT|FROM|WHERE|INSERT|INTO|UPDATE|SET|DELETE|CREATE|DROP|TABLE|ALTER|JOIN|INNER|LEFT|RIGHT|OUTER|ON|GROUP|BY|ORDER|HAVING|LIMIT|AS|DISTINCT|COUNT|AVG|SUM|MIN|MAX|AND|OR|NOT|IN|LIKE|IS|NULL|VALUES|ASC|DESC)\b/gi;
+            const comments = /(--.*)/g;
+            const strings = /('(?:[^']|'')*')/g;
+            const numbers = /\b(\d+(?:\.\d+)?)\b/g;
+
+            // Simple safe token replacement approach for lightweight highlighting
+            let escaped = escapeHtml(text);
+
+            // Replace comments first
+            escaped = escaped.replace(comments, '<span class="sql-comment">$1</span>');
+            // Strings
+            escaped = escaped.replace(strings, '<span class="sql-string">$1</span>');
+            // Keywords
+            escaped = escaped.replace(keywords, '<span class="sql-keyword">$1</span>');
+            // Numbers
+            escaped = escaped.replace(numbers, '<span class="sql-number">$1</span>');
+
+            return escaped;
         }
 
         // --- QUERY EXECUTION & VERIFICATION ENGINE ---
@@ -590,14 +648,11 @@
                 statusText.innerHTML = `<span class="text-emerald-400"><i class="fa-solid fa-check"></i> Executed in ${executionTime}ms</span>`;
                 rowBadge.textContent = `${values.length} rows returned`;
 
-                // Render execution table
                 container.innerHTML = generateTableHTML(columns, values);
 
-                // Verify solution if "Run and Submit" was clicked
                 if (shouldSubmit) {
                     verifySolution(query, columns, values);
                 } else {
-                    // Hide verification badge for normal Run
                     vBadge.classList.add('hidden');
                 }
 
@@ -674,7 +729,6 @@
             }
         }
 
-        // Preview Table Data Modal
         function previewTableData(tableName) {
             const modal = document.getElementById('preview-modal');
             const title = document.getElementById('modal-table-title');
@@ -704,7 +758,6 @@
             document.getElementById(id).classList.add('hidden');
         }
 
-        // --- UTILITY HELPERS ---
         function generateTableHTML(columns, values, isSmall = false) {
             if (!columns || columns.length === 0) {
                 return `<div class="p-3 text-slate-500 italic">Query executed successfully (0 columns returned).</div>`;
@@ -754,11 +807,13 @@
             input.value = val.substring(0, start) + text + val.substring(end);
             input.focus();
             input.selectionStart = input.selectionEnd = start + text.length;
+            handleEditorInput();
         }
 
         function clearEditor() {
             document.getElementById('sql-input').value = '';
             document.getElementById('sql-input').focus();
+            handleEditorInput();
         }
 
         function nextLevel() {
